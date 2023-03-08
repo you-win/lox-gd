@@ -2,6 +2,8 @@ extends RefCounted
 
 class Expr:
 	class Visitor:
+		func visit_assign_expr(expr: Assign) -> Variant:
+			return null
 		func visit_binary_expr(expr: Binary) -> Variant:
 			return null
 		func visit_grouping_expr(expr: Grouping) -> Variant:
@@ -12,6 +14,15 @@ class Expr:
 			return null
 		func visit_variable_expr(expr: Variable) -> Variant:
 			return null
+
+	class Assign extends Expr:
+		var name: Lox.Token
+		var value: Expr
+		func _init(name: Lox.Token, value: Expr):
+			self.name = name
+			self.value = value
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_assign_expr(self)
 
 	class Binary extends Expr:
 		var left: Expr

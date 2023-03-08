@@ -53,9 +53,25 @@ func _stringify(object: Variant) -> String:
 func _execute(stmt: Stmt) -> void:
 	stmt.accept(self)
 
+func _execute_block(statements: Array[Stmt], environment: Lox.LoxEnvironment) -> void:
+	var previous := _environment
+	
+	_environment = environment
+	
+	for statement in statements:
+		_execute(statement)
+	
+	_environment = previous
+
 #-----------------------------------------------------------------------------#
 # Public functions
 #-----------------------------------------------------------------------------#
+
+func visit_assign_expr(expr: Expr.Assign) -> Variant:
+	var value: Variant = _evaluate(expr.value)
+	_environment.assign(expr.name, value)
+	
+	return value
 
 func visit_literal_expr(expr: Expr.Literal) -> Variant:
 	return expr.value
@@ -108,6 +124,19 @@ func visit_binary_expr(expr: Expr.Binary) -> Variant:
 
 func visit_variable_expr(expr: Expr.Variable) -> Variant:
 	return _environment.get_value(expr.name)
+
+func visit_if_stmt(stmt: Stmt.If) -> Variant:
+	if _is_truthy(_evaluate(stmt.condition)):
+		_execute(stmt.then_branch)
+	elif stmt.else_branch != null:
+		_execute(stmt.else_branch)
+	
+	return null
+
+func visit_block_stmt(stmt: Stmt.Block) -> Variant:
+	_execute_block(stmt.statements, Lox.LoxEnvironment.new(_environment))
+	
+	return null
 
 func visit_loxexpression_stmt(stmt: Stmt.LoxExpression) -> Variant:
 	_evaluate(stmt.expression)

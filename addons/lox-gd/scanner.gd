@@ -135,7 +135,7 @@ func _string() -> void:
 	
 	_advance()
 	
-	var value := _source.substr(_start + 1, _current - _start - 1)
+	var value := _source.substr(_start + 1, _current - _start - 2)
 	_add_token(TokenType.STRING, value)
 
 # TODO this might be comparing ascii character position

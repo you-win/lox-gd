@@ -46,8 +46,23 @@ func _peek() -> Token:
 func _previous() -> Token:
 	return _tokens[_current - 1]
 
+func _assignment() -> Expr:
+	var expr := _equality()
+	
+	if _match([TokenType.EQUAL]):
+		var equals: Token = _previous()
+		var value: Expr = _assignment()
+		
+		if expr is Expr.Variable:
+			var name: Token = expr.name
+			return Expr.Assign.new(name, value)
+		
+		Lox.error(equals, "Invalid assignment target.")
+	
+	return expr
+
 func _expression() -> Expr:
-	return _equality()
+	return _assignment()
 
 func _equality() -> Expr:
 	var expr := _comparison()
@@ -149,10 +164,36 @@ func _synchronize() -> void:
 		_advance()
 
 func _statement() -> Stmt:
+	if _match([TokenType.IF]):
+		return _if_statement()
 	if _match([TokenType.PRINT]):
 		return _print_statement()
+	if _match([TokenType.LEFT_BRACE]):
+		return Stmt.Block.new(_block())
 	
 	return _expression_statement()
+
+func _if_statement() -> Stmt:
+	_consume(TokenType.LEFT_PAREN, "Expected '(' after 'if'.")
+	var condition: Expr = _expression()
+	_consume(TokenType.RIGHT_PAREN, "Expected ')' after if condition.")
+	
+	var then_branch: Stmt = _statement()
+	var else_branch: Stmt = null
+	if _match([TokenType.ELSE]):
+		else_branch = _statement()
+	
+	return Stmt.If.new(condition, then_branch, else_branch)
+
+func _block() -> Array[Stmt]:
+	var statements: Array[Stmt] = []
+	
+	while not _check(TokenType.RIGHT_BRACE) and not _is_at_end():
+		statements.push_back(_declaration())
+	
+	_consume(TokenType.RIGHT_BRACE, "Expected '}' after block.")
+	
+	return statements
 
 func _print_statement() -> Stmt:
 	var value: Expr = _expression()
