@@ -18,7 +18,17 @@ func _ready() -> void:
 	ast.status_updated.connect(func(text: String) -> void:
 		status.text = text
 	)
+	ast.name = "AST Editor"
 	views.add_child(ast)
+	
+	var repl: Control = load("res://addons/lox-gd-tools/gui/repl.tscn").instantiate()
+	plugin.inject_tool(repl)
+	repl.plugin = plugin
+	repl.status_updated.connect(func(text: String) -> void:
+		status.text = text
+	)
+	repl.name = "REPL"
+	views.add_child(repl)
 
 #-----------------------------------------------------------------------------#
 # Private functions

@@ -1,4 +1,8 @@
-extends CanvasLayer
+extends VSplitContainer
+
+signal status_updated(text: String)
+
+var plugin: Node = null
 
 @onready
 var output := %Output
@@ -33,31 +37,14 @@ func _ready() -> void:
 		if not _enter_pressed and not _ctrl_pressed:
 			_can_execute = true
 	)
-	
-	var util := preload("res://addons/lox-gd/tools/generate_ast.gd").new()
-	util.generate("res://addons/lox-gd/ast", "Expr", [
-		"Assign   : name: Lox.Token, value: Expr",
-		"Binary   : left: Expr, operator: Lox.Token, right: Expr",
-		"Grouping : expression: Expr",
-		"Literal  : value: Variant",
-		"Unary    : operator: Lox.Token, right: Expr",
-		"Variable : name: Lox.Token"
-	])
-	util.generate("res://addons/lox-gd/ast", "Stmt", [
-		"Block         : statements: Array",
-		"If            : condition: Lox.Expr, then_branch: Stmt, else_branch: Stmt",
-		"LoxExpression : expression: Lox.Expr",
-		"LoxPrint      : expression: Lox.Expr",
-		"LoxVar        : name: Lox.Token, initializer: Lox.Expr"
-	])
-
-	Lox.init()
 
 #-----------------------------------------------------------------------------#
 # Private functions
 #-----------------------------------------------------------------------------#
 
 func _execute() -> void:
+	Lox.init()
+	
 	var text: String = input.text
 	
 	output.text += "%s\n" % text
@@ -70,7 +57,12 @@ func _execute() -> void:
 
 	var interpreter := Lox.Interpreter.new()
 	interpreter.interpret(statements)
+	
+	status_updated.emit("Success!") if not Lox.had_error() else status_updated.emit("Error!")
+	
+	Lox.deinit()
 
 #-----------------------------------------------------------------------------#
 # Public functions
 #-----------------------------------------------------------------------------#
+

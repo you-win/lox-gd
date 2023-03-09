@@ -1,9 +1,8 @@
 [gd_scene load_steps=2 format=3 uid="uid://d2w6lk83maja8"]
 
-[ext_resource type="Script" path="res://repl/repl.gd" id="1_n8q27"]
+[ext_resource type="PackedScene" uid="uid://dov6nq8251c1o" path="res://addons/lox-gd-tools/gui/repl.tscn" id="2_o7v57"]
 
 [node name="Repl" type="CanvasLayer"]
-script = ExtResource("1_n8q27")
 
 [node name="Background" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -13,32 +12,9 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.0666667, 0.00784314, 0.164706, 1)
 
-[node name="VBoxContainer" type="VSplitContainer" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="Repl" parent="." instance=ExtResource("2_o7v57")]
+anchors_preset = -1
 offset_left = 10.0
 offset_top = 10.0
 offset_right = -10.0
 offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
-split_offset = 319
-
-[node name="Output" type="TextEdit" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="HSplitContainer" type="HSplitContainer" parent="VBoxContainer"]
-layout_mode = 2
-split_offset = 654
-
-[node name="Input" type="CodeEdit" parent="VBoxContainer/HSplitContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-gutters_draw_line_numbers = true
-
-[node name="Execute" type="Button" parent="VBoxContainer/HSplitContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Execute"
