@@ -47,7 +47,7 @@ func _previous() -> Token:
 	return _tokens[_current - 1]
 
 func _assignment() -> Expr:
-	var expr := _equality()
+	var expr := _or()
 	
 	if _match([TokenType.EQUAL]):
 		var equals: Token = _previous()
@@ -164,14 +164,61 @@ func _synchronize() -> void:
 		_advance()
 
 func _statement() -> Stmt:
+	if _match([TokenType.FOR]):
+		return _for_statement()
 	if _match([TokenType.IF]):
 		return _if_statement()
 	if _match([TokenType.PRINT]):
 		return _print_statement()
+	if _match([TokenType.WHILE]):
+		return _while_statement()
 	if _match([TokenType.LEFT_BRACE]):
 		return Stmt.Block.new(_block())
 	
 	return _expression_statement()
+
+func _while_statement() -> Stmt:
+	_consume(TokenType.LEFT_PAREN, "Expected '(' after 'while'.")
+	var condition: Expr = _expression()
+	_consume(TokenType.RIGHT_PAREN, "Expected ')' after condition.")
+	var body: Stmt = _statement()
+	
+	return Stmt.While.new(condition, body)
+
+func _for_statement() -> Stmt:
+	_consume(TokenType.LEFT_PAREN, "Expected '(' after 'for'.")
+	
+	var initializer: Stmt = null
+	if _match([TokenType.SEMICOLON]):
+		pass # Intentionally blank
+	elif _match([TokenType.VAR]):
+		initializer = _var_declaration()
+	else:
+		initializer = _expression_statement()
+	
+	var condition: Expr = null
+	if not _check(TokenType.SEMICOLON):
+		condition = _expression()
+	_consume(TokenType.SEMICOLON, "Expected ';' after loop condition.")
+	
+	var increment: Expr = null
+	if not _check(TokenType.RIGHT_PAREN):
+		increment = _expression()
+	_consume(TokenType.RIGHT_PAREN, "Expected ')' after for clause.")
+	
+	var body: Stmt = _statement()
+	
+	if increment != null:
+		body = Stmt.Block.new([body, Stmt.LoxExpression.new(increment)])
+	
+	if condition == null:
+		condition = Expr.Literal.new(true)
+	body = Stmt.While.new(condition, body)
+	
+	if initializer != null:
+		body = Stmt.Block.new([initializer, body])
+	
+	return body
 
 func _if_statement() -> Stmt:
 	_consume(TokenType.LEFT_PAREN, "Expected '(' after 'if'.")
@@ -227,6 +274,26 @@ func _var_declaration() -> Stmt:
 	_consume(TokenType.SEMICOLON, "Expected ';' after variable declaration.")
 	
 	return Stmt.LoxVar.new(name, initializer)
+
+func _or() -> Expr:
+	var expr: Expr = _and()
+	
+	while _match([TokenType.OR]):
+		var operator: Token = _previous()
+		var right: Expr = _and()
+		expr = Expr.Logical.new(expr, operator, right)
+	
+	return expr
+
+func _and() -> Expr:
+	var expr: Expr = _equality()
+	
+	while _match([TokenType.AND]):
+		var operator: Token = _previous()
+		var right: Expr = _equality()
+		expr = Expr.Logical.new(expr, operator, right)
+	
+	return expr
 
 #-----------------------------------------------------------------------------#
 # Public functions

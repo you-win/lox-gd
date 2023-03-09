@@ -13,7 +13,6 @@ grow_vertical = 2
 color = Color(0.0666667, 0.00784314, 0.164706, 1)
 
 [node name="Repl" parent="." instance=ExtResource("2_o7v57")]
-anchors_preset = -1
 offset_left = 10.0
 offset_top = 10.0
 offset_right = -10.0

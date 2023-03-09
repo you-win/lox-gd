@@ -53,7 +53,7 @@ func _stringify(object: Variant) -> String:
 func _execute(stmt: Stmt) -> void:
 	stmt.accept(self)
 
-func _execute_block(statements: Array[Stmt], environment: Lox.LoxEnvironment) -> void:
+func _execute_block(statements: Array, environment: Lox.LoxEnvironment) -> void:
 	var previous := _environment
 	
 	_environment = environment
@@ -125,6 +125,17 @@ func visit_binary_expr(expr: Expr.Binary) -> Variant:
 func visit_variable_expr(expr: Expr.Variable) -> Variant:
 	return _environment.get_value(expr.name)
 
+func visit_logical_expr(expr: Expr.Logical) -> Variant:
+	var left: Variant = _evaluate(expr.left)
+	
+	if expr.operator.type == TokenType.OR:
+		if _is_truthy(left):
+			return left
+	elif not _is_truthy(left):
+		return left
+	
+	return _evaluate(expr.right)
+
 func visit_if_stmt(stmt: Stmt.If) -> Variant:
 	if _is_truthy(_evaluate(stmt.condition)):
 		_execute(stmt.then_branch)
@@ -155,6 +166,12 @@ func visit_loxvar_stmt(stmt: Stmt.LoxVar) -> Variant:
 		value = _evaluate(stmt.initializer)
 	
 	_environment.define(stmt.name.lexeme, value)
+	
+	return null
+
+func visit_while_stmt(stmt: Stmt.While) -> Variant:
+	while _is_truthy(_evaluate(stmt.condition)):
+		_execute(stmt.body)
 	
 	return null
 

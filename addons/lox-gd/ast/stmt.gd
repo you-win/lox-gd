@@ -12,6 +12,8 @@ class Stmt:
 			return null
 		func visit_loxvar_stmt(stmt: LoxVar) -> Variant:
 			return null
+		func visit_while_stmt(stmt: While) -> Variant:
+			return null
 
 	class Block extends Stmt:
 		var statements: Array
@@ -53,6 +55,15 @@ class Stmt:
 			self.initializer = initializer
 		func accept(visitor: Variant) -> Variant:
 			return visitor.visit_loxvar_stmt(self)
+
+	class While extends Stmt:
+		var condition: Lox.Expr
+		var body: Stmt
+		func _init(condition: Lox.Expr, body: Stmt):
+			self.condition = condition
+			self.body = body
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_while_stmt(self)
 
 	func accept(visitor: Variant) -> Variant:
 		return null
