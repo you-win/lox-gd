@@ -6,10 +6,12 @@ extends RefCounted
 ## Should be fairly faithful to the reference Java implementation, however error handling
 ## is very different due to the fact that GDScript does not have exceptions.
 
-const AstPrinter := preload("./ast_printer.gd")
 const LoxEnvironment := preload("./environment.gd")
+const LoxCallable := preload("./lox_callable.gd")
+const LoxFunction := preload("./lox_function.gd")
 const Interpreter := preload("./interpreter.gd")
 const Parser := preload("./parser.gd")
+const Resolver := preload("./resolver.gd")
 const Scanner := preload("./scanner.gd")
 
 const Expr := preload("./ast/expr.gd").Expr
@@ -55,6 +57,13 @@ class Token:
 
 class ErrorHandler extends Node:
 	var had_error := false
+	
+	var thrown_value: Variant = null
+	func take() -> Variant:
+		var val: Variant = thrown_value
+		thrown_value = null
+		
+		return val
 const ERROR_HANDLER_NAME := "LoxErrorHandler"
 
 #-----------------------------------------------------------------------------#
@@ -80,6 +89,7 @@ static func init() -> void:
 
 ## Probably not needed but it's nice to have.
 static func deinit() -> void:
+	Engine.get_singleton(ERROR_HANDLER_NAME).queue_free()
 	Engine.unregister_singleton(ERROR_HANDLER_NAME)
 
 static func had_error() -> bool:
@@ -93,3 +103,11 @@ static func error(token: Token, message: String) -> void:
 		_report(token.line, " at end", message)
 	else:
 		_report(token.line, " at '%s'" % token.lexeme, message)
+
+static func throw(value: Variant) -> Variant:
+	Engine.get_singleton(ERROR_HANDLER_NAME).thrown_value = value
+	
+	return value
+
+static func get_error_handler() -> ErrorHandler:
+	return Engine.get_singleton(ERROR_HANDLER_NAME)

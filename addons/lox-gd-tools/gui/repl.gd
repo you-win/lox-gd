@@ -56,9 +56,18 @@ func _execute() -> void:
 	var statements: Array = parser.parse()
 
 	var interpreter := Lox.Interpreter.new()
+	var resolver := Lox.Resolver.new(interpreter)
+	resolver.resolve(statements)
+	
+	if Lox.had_error():
+		return
+	
 	interpreter.interpret(statements)
 	
-	status_updated.emit("Success!") if not Lox.had_error() else status_updated.emit("Error!")
+	if not Lox.had_error():
+		status_updated.emit("Error!")
+	else:
+		status_updated.emit("Success!")
 	
 	Lox.deinit()
 

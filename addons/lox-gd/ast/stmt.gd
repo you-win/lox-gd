@@ -14,6 +14,10 @@ class Stmt:
 			return null
 		func visit_while_stmt(stmt: While) -> Variant:
 			return null
+		func visit_function_stmt(stmt: Function) -> Variant:
+			return null
+		func visit_return_stmt(stmt: Return) -> Variant:
+			return null
 
 	class Block extends Stmt:
 		var statements: Array
@@ -64,6 +68,26 @@ class Stmt:
 			self.body = body
 		func accept(visitor: Variant) -> Variant:
 			return visitor.visit_while_stmt(self)
+
+	class Function extends Stmt:
+		var name: Lox.Token
+		var params: Array
+		var body: Array
+		func _init(name: Lox.Token, params: Array, body: Array):
+			self.name = name
+			self.params = params
+			self.body = body
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_function_stmt(self)
+
+	class Return extends Stmt:
+		var keyword: Lox.Token
+		var value: Lox.Expr
+		func _init(keyword: Lox.Token, value: Lox.Expr):
+			self.keyword = keyword
+			self.value = value
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_return_stmt(self)
 
 	func accept(visitor: Variant) -> Variant:
 		return null

@@ -9,11 +9,27 @@ const Expr := Lox.Expr
 const Stmt := Lox.Stmt
 const TokenType := Lox.TokenType
 
-var _environment := Lox.LoxEnvironment.new()
+class Clock extends Lox.LoxCallable:
+	func _to_string() -> String:
+		return "<native fn>"
+	
+	func arity() -> int:
+		return 0
+	
+	func lox_call(interpreter: Lox.Interpreter, arguments: Array) -> Variant:
+		return Time.get_time_string_from_system()
+
+var globals := Lox.LoxEnvironment.new()
+var _environment := globals
+var _locals := {}
 
 #-----------------------------------------------------------------------------#
 # Builtin functions
 #-----------------------------------------------------------------------------#
+
+func _init() -> void:
+	globals.define("clock", Clock.new())
+	pass
 
 #-----------------------------------------------------------------------------#
 # Private functions
@@ -50,10 +66,21 @@ func _stringify(object: Variant) -> String:
 	
 	return str(object)
 
+func _look_up_variable(name: Lox.Token, expr: Expr) -> Variant:
+	var distance: int = _locals.get(expr, -1)
+	if distance != null:
+		return _environment.get_value_at(distance, name.lexeme)
+	else:
+		return globals.get_value(name)
+
 func _execute(stmt: Stmt) -> void:
 	stmt.accept(self)
 
-func _execute_block(statements: Array, environment: Lox.LoxEnvironment) -> void:
+#-----------------------------------------------------------------------------#
+# Public functions
+#-----------------------------------------------------------------------------#
+
+func execute_block(statements: Array, environment: Lox.LoxEnvironment) -> void:
 	var previous := _environment
 	
 	_environment = environment
@@ -63,13 +90,15 @@ func _execute_block(statements: Array, environment: Lox.LoxEnvironment) -> void:
 	
 	_environment = previous
 
-#-----------------------------------------------------------------------------#
-# Public functions
-#-----------------------------------------------------------------------------#
-
 func visit_assign_expr(expr: Expr.Assign) -> Variant:
 	var value: Variant = _evaluate(expr.value)
 	_environment.assign(expr.name, value)
+	
+	var distance: int = _locals.get(expr, -1)
+	if distance > 0:
+		_environment.assign_at(distance, expr.name, value)
+	else:
+		globals.assign(expr.name, value)
 	
 	return value
 
@@ -123,7 +152,7 @@ func visit_binary_expr(expr: Expr.Binary) -> Variant:
 	return null
 
 func visit_variable_expr(expr: Expr.Variable) -> Variant:
-	return _environment.get_value(expr.name)
+	return _look_up_variable(expr.name, expr)
 
 func visit_logical_expr(expr: Expr.Logical) -> Variant:
 	var left: Variant = _evaluate(expr.left)
@@ -136,6 +165,26 @@ func visit_logical_expr(expr: Expr.Logical) -> Variant:
 	
 	return _evaluate(expr.right)
 
+func visit_call_expr(expr: Expr.Call) -> Variant:
+	var callee: Variant = _evaluate(expr.callee)
+	
+	var arguments := []
+	for argument in expr.arguments:
+		arguments.push_back(_evaluate(argument))
+	
+	if not callee is Lox.LoxCallable:
+		Lox.error(expr.pare, "Can only call functions and classes.")
+		return
+	
+	var function: Lox.LoxCallable = callee
+	if arguments.size() != function.arity():
+		Lox.error(expr.paren, "Expected %d arguments but got %d." % [
+			function.arity(), arguments.size()
+		])
+		return
+	
+	return function.lox_call(self, arguments)
+
 func visit_if_stmt(stmt: Stmt.If) -> Variant:
 	if _is_truthy(_evaluate(stmt.condition)):
 		_execute(stmt.then_branch)
@@ -145,7 +194,7 @@ func visit_if_stmt(stmt: Stmt.If) -> Variant:
 	return null
 
 func visit_block_stmt(stmt: Stmt.Block) -> Variant:
-	_execute_block(stmt.statements, Lox.LoxEnvironment.new(_environment))
+	execute_block(stmt.statements, Lox.LoxEnvironment.new(_environment))
 	
 	return null
 
@@ -175,6 +224,22 @@ func visit_while_stmt(stmt: Stmt.While) -> Variant:
 	
 	return null
 
+func visit_function_stmt(stmt: Stmt.Function) -> Variant:
+	var function := Lox.LoxFunction.new(stmt, _environment)
+	_environment.define(stmt.name.lexeme, function)
+	
+	return null
+
+func visit_return_stmt(stmt: Stmt.Return) -> Variant:
+	var value: Variant = null
+	if stmt.value != null:
+		value = _evaluate(stmt.value)
+	
+	return Lox.throw(value)
+
 func interpret(statements: Array) -> void:
 	for statement in statements:
 		_execute(statement)
+
+func resolve(expr: Expr, depth: int) -> void:
+	_locals[expr] = depth

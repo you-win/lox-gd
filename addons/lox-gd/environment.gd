@@ -43,3 +43,16 @@ func get_value(token: Lox.Token) -> Variant:
 	Lox.error(token, "Undefined variable '%s'." % token.lexeme)
 	
 	return null
+
+func ancestor(distance: int) -> Lox.LoxEnvironment:
+	var environment: Lox.LoxEnvironment = self
+	for i in distance:
+		environment = environment.enclosing
+	
+	return environment
+
+func get_value_at(distance: int, name: String) -> Variant:
+	return ancestor(distance).values.get(name, null)
+
+func assign_at(distance: int, name: Lox.Token, value: Variant) -> void:
+	ancestor(distance).values[name.lexeme] = value

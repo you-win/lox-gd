@@ -113,7 +113,7 @@ func _unary() -> Expr:
 		var right: Expr = _unary()
 		return Expr.Unary.new(operator, right)
 	
-	return _primary()
+	return _call()
 
 func _primary() -> Expr:
 	if _match([TokenType.FALSE]):
@@ -141,10 +141,9 @@ func _consume(type: TokenType, message: String) -> Token:
 	if _check(type):
 		return _advance()
 	
-	Lox.error_simple(-1, "%s - %s" % [str(_peek()), message])
+	Lox.error(_peek(), message)
 	
-	# GDScript does not have throw
-	return null
+	return Lox.throw(_peek())
 
 func _synchronize() -> void:
 	_advance()
@@ -170,6 +169,8 @@ func _statement() -> Stmt:
 		return _if_statement()
 	if _match([TokenType.PRINT]):
 		return _print_statement()
+	if _match([TokenType.RETURN]):
+		return _return_statement()
 	if _match([TokenType.WHILE]):
 		return _while_statement()
 	if _match([TokenType.LEFT_BRACE]):
@@ -250,11 +251,13 @@ func _print_statement() -> Stmt:
 
 func _expression_statement() -> Stmt:
 	var expr: Expr = _expression()
-	_consume(TokenType.SEMICOLON, "Expect ';' after expression.")
+	_consume(TokenType.SEMICOLON, "Expected ';' after expression.")
 	
 	return Stmt.LoxExpression.new(expr)
 
 func _declaration() -> Stmt:
+	if _match([TokenType.FUN]):
+		return _function("function")
 	if _match([TokenType.VAR]):
 		return _var_declaration()
 	
@@ -263,6 +266,31 @@ func _declaration() -> Stmt:
 		_synchronize()
 	
 	return stmt
+
+func _function(kind: String) -> Stmt.Function:
+	var name: Token = _consume(TokenType.IDENTIFIER, "Expected %s name." % kind)
+	_consume(TokenType.LEFT_PAREN, "Expected '(' after %s name." % kind)
+	
+	var parameters := []
+	
+	var inner_func := func() -> void:
+		if parameters.size() >= 255:
+			Lox.error(_peek(), "Cannot have more than 255 parameters.")
+			return
+		
+		parameters.push_back(_consume(TokenType.IDENTIFIER, "Expected parameter name."))
+	
+	if not _check(TokenType.RIGHT_PAREN):
+		inner_func.call()
+		while _match([TokenType.COMMA]):
+			inner_func.call()
+	
+	_consume(TokenType.RIGHT_PAREN, "Expected ')' after parameters.")
+	
+	_consume(TokenType.LEFT_BRACE, "Expected '{' before %s body." % kind)
+	var body: Array = _block()
+	
+	return Stmt.Function.new(name, parameters, body)
 
 func _var_declaration() -> Stmt:
 	var name: Token = _consume(TokenType.IDENTIFIER, "Expected variable name.")
@@ -295,6 +323,46 @@ func _and() -> Expr:
 	
 	return expr
 
+func _call() -> Expr:
+	var expr: Expr = _primary()
+	
+	while true:
+		if _match([TokenType.LEFT_PAREN]):
+			expr = _finish_call(expr)
+		else:
+			break
+	
+	return expr
+
+func _finish_call(callee: Expr) -> Expr:
+	var arguments := []
+	
+	var inner_call := func() -> void:
+		if arguments.size() >= 255:
+			Lox.error(_peek(), "Cannot have more than 255 arguments.")
+		arguments.push_back(_expression())
+	
+	if not _check(TokenType.RIGHT_PAREN):
+		# TODO this is probably equivalent to a do..while loop?
+		inner_call.call()
+		while _match([TokenType.COMMA]):
+			inner_call.call()
+	
+	var paren: Lox.Token = _consume(TokenType.RIGHT_PAREN, "Expected ')' after arguments")
+	
+	return Expr.Call.new(callee, paren, arguments)
+
+func _return_statement() -> Stmt:
+	var keyword: Token = _previous()
+	var value: Expr = null
+	
+	if not _check(TokenType.SEMICOLON):
+		value = _expression()
+	
+	_consume(TokenType.SEMICOLON, "Expected ';' after return value.")
+	
+	return Stmt.Return.new(keyword, value)
+
 #-----------------------------------------------------------------------------#
 # Public functions
 #-----------------------------------------------------------------------------#
@@ -303,6 +371,8 @@ func _and() -> Expr:
 func parse() -> Array:
 	var statements := []
 	while not _is_at_end():
+		if Lox.had_error():
+			break
 		statements.push_back(_declaration())
 	
 	return statements

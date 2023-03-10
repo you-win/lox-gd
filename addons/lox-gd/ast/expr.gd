@@ -16,6 +16,8 @@ class Expr:
 			return null
 		func visit_logical_expr(expr: Logical) -> Variant:
 			return null
+		func visit_call_expr(expr: Call) -> Variant:
+			return null
 
 	class Assign extends Expr:
 		var name: Lox.Token
@@ -77,6 +79,17 @@ class Expr:
 			self.right = right
 		func accept(visitor: Variant) -> Variant:
 			return visitor.visit_logical_expr(self)
+
+	class Call extends Expr:
+		var callee: Expr
+		var paren: Lox.Token
+		var arguments: Array
+		func _init(callee: Expr, paren: Lox.Token, arguments: Array):
+			self.callee = callee
+			self.paren = paren
+			self.arguments = arguments
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_call_expr(self)
 
 	func accept(visitor: Variant) -> Variant:
 		return null
