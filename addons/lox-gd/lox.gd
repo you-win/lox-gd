@@ -8,7 +8,9 @@ extends RefCounted
 
 const LoxEnvironment := preload("./environment.gd")
 const LoxCallable := preload("./lox_callable.gd")
+const LoxClass := preload("./lox_class.gd")
 const LoxFunction := preload("./lox_function.gd")
+const LoxInstance := preload("./lox_instance.gd")
 const Interpreter := preload("./interpreter.gd")
 const Parser := preload("./parser.gd")
 const Resolver := preload("./resolver.gd")

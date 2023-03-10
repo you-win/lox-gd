@@ -6,7 +6,8 @@ const Token := Lox.Token
 
 enum FunctionType {
 	NONE,
-	FUNCTION
+	FUNCTION,
+	METHOD
 }
 
 var _interpreter: Lox.Interpreter = null
@@ -122,6 +123,17 @@ func visit_call_expr(expr: Expr.Call) -> Variant:
 	
 	return null
 
+func visit_get_expr(expr: Expr.Get) -> Variant:
+	_resolve(expr.object)
+	
+	return null
+
+func visit_set_expr(expr: Expr.Set) -> Variant:
+	_resolve(expr.value)
+	_resolve(expr.object)
+	
+	return null
+
 func visit_if_stmt(stmt: Stmt.If) -> Variant:
 	_resolve(stmt.condition)
 	_resolve(stmt.then_branch)
@@ -176,6 +188,16 @@ func visit_return_stmt(stmt: Stmt.Return) -> Variant:
 	
 	if stmt.value != null:
 		_resolve(stmt.value)
+	
+	return null
+
+func visit_class_stmt(stmt: Stmt.Class) -> Variant:
+	_declare(stmt.name)
+	_define(stmt.name)
+	
+	for method in stmt.methods:
+		var declaration: FunctionType = FunctionType.METHOD
+		_resolve_function(method, declaration)
 	
 	return null
 

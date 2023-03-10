@@ -18,6 +18,10 @@ class Expr:
 			return null
 		func visit_call_expr(expr: Call) -> Variant:
 			return null
+		func visit_get_expr(expr: Get) -> Variant:
+			return null
+		func visit_set_expr(expr: Set) -> Variant:
+			return null
 
 	class Assign extends Expr:
 		var name: Lox.Token
@@ -90,6 +94,26 @@ class Expr:
 			self.arguments = arguments
 		func accept(visitor: Variant) -> Variant:
 			return visitor.visit_call_expr(self)
+
+	class Get extends Expr:
+		var object: Expr
+		var name: Lox.Token
+		func _init(object: Expr, name: Lox.Token):
+			self.object = object
+			self.name = name
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_get_expr(self)
+
+	class Set extends Expr:
+		var object: Expr
+		var name: Lox.Token
+		var value: Expr
+		func _init(object: Expr, name: Lox.Token, value: Expr):
+			self.object = object
+			self.name = name
+			self.value = value
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_set_expr(self)
 
 	func accept(visitor: Variant) -> Variant:
 		return null

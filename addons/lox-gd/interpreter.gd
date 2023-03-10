@@ -185,6 +185,26 @@ func visit_call_expr(expr: Expr.Call) -> Variant:
 	
 	return function.lox_call(self, arguments)
 
+func visit_get_expr(expr: Expr.Get) -> Variant:
+	var object := _evaluate(expr.object)
+	if object is Lox.LoxInstance:
+		return object.get_value(expr.name)
+	
+	Lox.error(expr.name, "Only instances can have properties.")
+	
+	return Lox.throw(expr.name)
+
+func visit_set_expr(expr: Expr.Set) -> Variant:
+	var object: Variant = _evaluate(expr.object)
+	
+	if not object is Lox.LoxInstance:
+		return Lox.throw(expr.name)
+	
+	var value: Variant = _evaluate(expr.value)
+	object.set_value(expr.name, value)
+	
+	return value
+
 func visit_if_stmt(stmt: Stmt.If) -> Variant:
 	if _is_truthy(_evaluate(stmt.condition)):
 		_execute(stmt.then_branch)
@@ -236,6 +256,19 @@ func visit_return_stmt(stmt: Stmt.Return) -> Variant:
 		value = _evaluate(stmt.value)
 	
 	return Lox.throw(value)
+
+func visit_class_stmt(stmt: Stmt.Class) -> Variant:
+	_environment.define(stmt.name.lexeme, null)
+	
+	var methods := {}
+	for method in stmt.methods:
+		var function := Lox.LoxFunction.new(method, _environment)
+		methods[method.name.lexeme] = function
+	
+	var clazz := Lox.LoxClass.new(stmt.name.lexeme, methods)
+	_environment.assign(stmt.name, clazz)
+	
+	return null
 
 func interpret(statements: Array) -> void:
 	for statement in statements:

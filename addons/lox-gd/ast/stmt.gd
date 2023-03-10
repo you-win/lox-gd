@@ -18,6 +18,8 @@ class Stmt:
 			return null
 		func visit_return_stmt(stmt: Return) -> Variant:
 			return null
+		func visit_class_stmt(stmt: Class) -> Variant:
+			return null
 
 	class Block extends Stmt:
 		var statements: Array
@@ -88,6 +90,15 @@ class Stmt:
 			self.value = value
 		func accept(visitor: Variant) -> Variant:
 			return visitor.visit_return_stmt(self)
+
+	class Class extends Stmt:
+		var name: Lox.Token
+		var methods: Array
+		func _init(name: Lox.Token, methods: Array):
+			self.name = name
+			self.methods = methods
+		func accept(visitor: Variant) -> Variant:
+			return visitor.visit_class_stmt(self)
 
 	func accept(visitor: Variant) -> Variant:
 		return null

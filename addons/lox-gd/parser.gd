@@ -56,6 +56,9 @@ func _assignment() -> Expr:
 		if expr is Expr.Variable:
 			var name: Token = expr.name
 			return Expr.Assign.new(name, value)
+		elif expr is Expr.Get:
+			var expr_get: Expr.Get = expr
+			return Expr.Set.new(expr_get.object, expr_get.name, value)
 		
 		Lox.error(equals, "Invalid assignment target.")
 	
@@ -256,6 +259,8 @@ func _expression_statement() -> Stmt:
 	return Stmt.LoxExpression.new(expr)
 
 func _declaration() -> Stmt:
+	if _match([TokenType.CLASS]):
+		return _class_declaration()
 	if _match([TokenType.FUN]):
 		return _function("function")
 	if _match([TokenType.VAR]):
@@ -266,6 +271,18 @@ func _declaration() -> Stmt:
 		_synchronize()
 	
 	return stmt
+
+func _class_declaration() -> Stmt:
+	var name: Token = _consume(TokenType.IDENTIFIER, "Expected class name.")
+	_consume(TokenType.LEFT_BRACE, "Expected '{' before class body.")
+	
+	var methods := []
+	while not _check(TokenType.RIGHT_BRACE) and not _is_at_end():
+		methods.push_back(_function("method"))
+	
+	_consume(TokenType.RIGHT_BRACE, "Expected '}' after class body.")
+	
+	return Stmt.Class.new(name, methods)
 
 func _function(kind: String) -> Stmt.Function:
 	var name: Token = _consume(TokenType.IDENTIFIER, "Expected %s name." % kind)
@@ -329,6 +346,9 @@ func _call() -> Expr:
 	while true:
 		if _match([TokenType.LEFT_PAREN]):
 			expr = _finish_call(expr)
+		elif _match([TokenType.DOT]):
+			var name: Lox.Token = _consume(TokenType.IDENTIFIER, "Expected property name after '.'.")
+			expr = Expr.Get.new(expr, name)
 		else:
 			break
 	
